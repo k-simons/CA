@@ -3,6 +3,7 @@ import requests
 from graph import Graph
 from node import Node
 from edge import Edge
+from encodeRequest import encode
 from cycleChecker import CycleChecker
 
 base = "https://api.binance.com"
@@ -11,6 +12,7 @@ depth = base + "/api/v1/depth"
 extraDepthExample = depth + "?symbol=BNBBTC"
 ticket =    base + "/api/v1/ticker/24hr"
 tickerPrice = base + "/api/v3/ticker/price"
+makeFakeOrder = base + "/api/v3/order/test"
 
 def printKeys(mydic):
     for key in mydic:
@@ -105,26 +107,47 @@ def doIt():
         nodes.append(Node(key))
 
     graph = Graph(nodes, edges)
-    print("START")
     mList = []
+    tradeSet = set()
+    tradeSet.add("BTC")
+    tradeSet.add("ETH")
     for node in nodes:
-        cycleChecker = CycleChecker(3, node, graph)
-        mList.extend(cycleChecker.checkCycles())
+        if node.nodeId in tradeSet:
+            cycleChecker = CycleChecker(3, node, graph)
+            test = cycleChecker.checkCycles()
+            mList.extend(test)
     maxResult = mList[0]
     for m in mList:
         if m.units > maxResult.units:
             maxResult = m
-    print("NEWWW")
     print(maxResult.units)
+    for node in maxResult.nodePath:
+        print(node)
 
 
-    print("OLD")
-    mList = []
-    for node in nodes:
-        mList.append(graph.checkCyclesOfDepth(3, node))
-    print(max(mList))
+    #print("OLD")
+    #mList = []
+    #for node in nodes:
+    #    mList.append(graph.checkCyclesOfDepth(3, node))
+    #print(max(mList))
 
 def main():
-    doIt()
+    print("fake")
+    headers = {"X-MBX-APIKEY: key"}
+    data = {'key':'value'}
+    r = requests.post(makeFakeOrder, data=data, headers=headers)
+
+    print(r)
+
+def main():
+    print("sketch")
+    encode(
+        "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559",
+        "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"
+    )
+
+# for making a request
+# [linux]$ curl -H "X-MBX-APIKEY: vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" -X POST 'https://api.binance.com/api/v3/order' -d 'symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=6000000&timestamp=1499827319559&signature=c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71'
+
 
 if __name__ == "__main__": main()

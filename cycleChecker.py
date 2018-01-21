@@ -7,6 +7,7 @@ class CycleChecker:
         self.startNode = startNode
         self.graph = graph
         self.setOfNodesAlreadyInPath = set()
+        self.setOfNodesAlreadyInPath.add(startNode.nodeId)
 
     def checkCycles(self):
         cyclesFound = []
@@ -14,15 +15,17 @@ class CycleChecker:
         return cyclesFound
 
     def checkCyclesOfDepthInternal(self, nodeProgress, cyclesFound):
-        edges = filter(lambda e: e.toNodeId not in self.setOfNodesAlreadyInPath, self.graph.getEdgesForNode(nodeProgress.nodeToEval))
+        allEdges = self.graph.getEdgesForNode(nodeProgress.nodeToEval)
+
         if nodeProgress.depthRemaining == 1:
             ## Need to get back to original node
-            for edge in edges:
+            for edge in allEdges:
                 if (edge.toNodeId == self.startNode.nodeId):
                     ## Go home
                     nodeProgress = self.createNextNodeProgress(nodeProgress, edge)
                     cyclesFound.append(CycleResult(nodeProgress.pastNodes, nodeProgress.units))
         else:
+            edges = [e for e in allEdges if e.toNodeId not in self.setOfNodesAlreadyInPath]
             for edge in edges:
                 nextNodeProgress = self.createNextNodeProgress(nodeProgress, edge)
                 self.checkCyclesOfDepthInternal(nextNodeProgress, cyclesFound)

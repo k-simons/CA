@@ -19,7 +19,9 @@ class Graph:
 
     def checkCyclesOfDepth(self, depth, startNode):
         self.maxV = 0
-        self.checkCyclesOfDepthInternal(depth, set(), 1, startNode, startNode)
+        mySet = set()
+        mySet.add(startNode.nodeId)
+        self.checkCyclesOfDepthInternal(depth, mySet, 1, startNode, startNode)
         return self.maxV
 
     def checkCyclesOfDepthInternal(self,
@@ -28,15 +30,16 @@ class Graph:
                                    units,
                                    nodeToEval,
                                    startNode):
-        edges = filter(lambda e: e.toNodeId not in setOfNodesAlreadyInPath, self.getEdgesForNode(nodeToEval))
+        allEdges = self.getEdgesForNode(nodeToEval)
         if depth == 1:
             ## Need to get back to original node
-            for edge in edges:
+            for edge in allEdges:
                 if (edge.toNodeId == startNode.nodeId):
                     ## Go home
                     newUnits = edge.makeTrade(units)
                     self.maxV = max(self.maxV, newUnits)
         else:
+            edges = [e for e in allEdges if e.toNodeId not in setOfNodesAlreadyInPath]
             for edge in edges:
                 toNode = Node(edge.toNodeId)
                 newUnits = edge.makeTrade(units)
