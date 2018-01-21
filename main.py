@@ -3,6 +3,7 @@ import requests
 from graph import Graph
 from node import Node
 from edge import Edge
+from cycleChecker import CycleChecker
 
 base = "https://api.binance.com"
 info = base + "/api/v1/exchangeInfo"
@@ -75,7 +76,7 @@ def binanceToNode():
     #- Enrich with current price to make 2 edges
     return 1
 
-def main():
+def doIt():
     response = requests.get(tickerPrice)
     prices = response.json()
     # {'symbol': 'ETHBTC', 'price': '0.09017900'} we can see base is ETH and quoteAsset BTC
@@ -107,8 +108,15 @@ def main():
     print("START")
     mList = []
     for node in nodes:
-        mList.append(graph.checkCyclesOfDepth(3, node))
-    print(max(mList))
+        cycleChecker = CycleChecker(3, node, graph)
+        mList.extend(cycleChecker.checkCycles())
+    maxResult = mList[0]
+    for m in mList:
+        if m.units > maxResult.units:
+            maxResult = m
+    print(m.units)
 
+def main():
+    doIt()
 
 if __name__ == "__main__": main()

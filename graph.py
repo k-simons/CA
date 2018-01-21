@@ -1,4 +1,3 @@
-from node import Node
 
 class Graph:
 
@@ -16,29 +15,3 @@ class Graph:
 
     def getEdgesForNode(self, node):
         return self.edgeMapping[node.nodeId]
-
-    def checkCyclesOfDepth(self, depth, startNode):
-        self.maxV = 0
-        self.checkCyclesOfDepthInternal(depth, set(), 1, startNode, startNode)
-        return self.maxV
-
-    def checkCyclesOfDepthInternal(self,
-                                   depth,
-                                   setOfNodesAlreadyInPath,
-                                   units,
-                                   nodeToEval,
-                                   startNode):
-        edges = filter(lambda e: e.toNodeId not in setOfNodesAlreadyInPath, self.getEdgesForNode(nodeToEval))
-        if depth == 1:
-            ## Need to get back to original node
-            for edge in edges:
-                if (edge.toNodeId == startNode.nodeId):
-                    ## Go home
-                    newUnits = units * edge.rate
-                    self.maxV = max(self.maxV, newUnits)
-        else:
-            for edge in edges:
-                toNode = Node(edge.toNodeId)
-                newUnits = units * edge.rate
-                setOfNodesAlreadyInPath.add(edge.toNodeId)
-                self.checkCyclesOfDepthInternal(depth - 1, setOfNodesAlreadyInPath, newUnits, toNode, startNode)

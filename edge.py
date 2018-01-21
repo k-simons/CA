@@ -5,6 +5,12 @@ class Edge:
         self.toNodeId = toNodeId
         self.id = fromNodeId + toNodeId
         self.rate = rate
+        self.fee = 0.001
 
     def __str__(self):
         return "From " + self.fromNodeId + ", to " + self.toNodeId + " with rate " + str(self.rate)
+
+    def makeTrade(self, units):
+        feeAmount = units * self.fee
+        unitsAfterFee = units - feeAmount
+        return unitsAfterFee * self.rate
