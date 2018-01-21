@@ -76,16 +76,13 @@ def binanceToNode():
     return 1
 
 def main():
-    print(tickerPrice)
     response = requests.get(tickerPrice)
     prices = response.json()
     # {'symbol': 'ETHBTC', 'price': '0.09017900'} we can see base is ETH and quoteAsset BTC
     pricesDict = {}
     for price in prices:
         pricesDict[price["symbol"]] = price["price"]
-    print(pricesDict)
     ## great have a dict, now lets creates 2 nodes per symbo
-    print(info)
     response = requests.get(info)
     infoResponse = response.json()
     edges = []
@@ -107,13 +104,11 @@ def main():
         nodes.append(Node(key))
 
     graph = Graph(nodes, edges)
-    print("")
-    print(len(nodes))
-    print(len(edges))
-    print("")
     print("START")
+    mList = []
     for node in nodes:
-        graph.checkCyclesOfDepth(3, node)
+        mList.append(graph.checkCyclesOfDepth(3, node))
+    print(max(mList))
 
 
 if __name__ == "__main__": main()

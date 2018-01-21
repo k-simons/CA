@@ -12,12 +12,15 @@ class Graph:
             if fromNodeId not in self.edgeMapping:
                 self.edgeMapping[fromNodeId] = []
             self.edgeMapping[fromNodeId].append(edge)
+        self.maxV = 0
 
     def getEdgesForNode(self, node):
         return self.edgeMapping[node.nodeId]
 
     def checkCyclesOfDepth(self, depth, startNode):
+        self.maxV = 0
         self.checkCyclesOfDepthInternal(depth, set(), 1, startNode, startNode)
+        return self.maxV
 
     def checkCyclesOfDepthInternal(self,
                                    depth,
@@ -31,9 +34,8 @@ class Graph:
             for edge in edges:
                 if (edge.toNodeId == startNode.nodeId):
                     ## Go home
-                    print("FINAL")
                     newUnits = units * edge.rate
-                    print(newUnits)
+                    self.maxV = max(self.maxV, newUnits)
         else:
             for edge in edges:
                 toNode = Node(edge.toNodeId)
