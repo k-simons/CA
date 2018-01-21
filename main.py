@@ -114,7 +114,15 @@ def doIt():
     for m in mList:
         if m.units > maxResult.units:
             maxResult = m
-    print(m.units)
+    print("NEWWW")
+    print(maxResult.units)
+
+
+    print("OLD")
+    mList = []
+    for node in nodes:
+        mList.append(graph.checkCyclesOfDepth(3, node))
+    print(max(mList))
 
 def main():
     doIt()
