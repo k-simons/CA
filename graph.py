@@ -16,7 +16,7 @@ class Graph:
     def getEdgesForNode(self, node):
         return self.edgeMapping[node.nodeId]
 
-    def checkCyclesOfDepth(self, depth, startNode): 
+    def checkCyclesOfDepth(self, depth, startNode):
         self.checkCyclesOfDepthInternal(depth, set(), 1, startNode, startNode)
 
     def checkCyclesOfDepthInternal(self,
@@ -24,7 +24,7 @@ class Graph:
                                    setOfNodesAlreadyInPath,
                                    units,
                                    nodeToEval,
-                                   startNode): 
+                                   startNode):
         edges = filter(lambda e: e.toNodeId not in setOfNodesAlreadyInPath, self.getEdgesForNode(nodeToEval))
         if depth == 1:
             ## Need to get back to original node

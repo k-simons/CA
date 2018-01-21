@@ -8,10 +8,10 @@ base = "https://api.binance.com"
 info = base + "/api/v1/exchangeInfo"
 depth = base + "/api/v1/depth"
 extraDepthExample = depth + "?symbol=BNBBTC"
-ticket =  base + "/api/v1/ticker/24hr"
+ticket =    base + "/api/v1/ticker/24hr"
 tickerPrice = base + "/api/v3/ticker/price"
 
-def printKeys(mydic): 
+def printKeys(mydic):
     for key in mydic:
         print(key)
 
@@ -30,7 +30,7 @@ def getApiData():
     print(tickerPrice)
     response = requests.get(tickerPrice)
     print(len(response.json()))
-    ## array of 
+    ## array of
     #{
     #    "symbol": "ETHBTC",
     #    "price": "0.08966300"
@@ -88,9 +88,32 @@ def main():
     print(info)
     response = requests.get(info)
     infoResponse = response.json()
+    edges = []
+    nodeDict = {}
     for symbol in infoResponse["symbols"]:
-        
-    print(symbols[0])
+        ticker = symbol["symbol"]
+        startAsset = symbol["baseAsset"]
+        goingAsset = symbol["quoteAsset"]
+        nodeDict[startAsset] = True
+        nodeDict[goingAsset] = True
+        edge = Edge(startAsset, goingAsset, float(pricesDict[ticker]))
+        edgeInverse = Edge(goingAsset, startAsset, 1 / float(pricesDict[ticker]))
+        edges.append(edge)
+        edges.append(edgeInverse)
+
+    nodes = []
+
+    for key in nodeDict:
+        nodes.append(Node(key))
+
+    graph = Graph(nodes, edges)
+    print("")
+    print(len(nodes))
+    print(len(edges))
+    print("")
+    print("START")
+    for node in nodes:
+        graph.checkCyclesOfDepth(3, node)
 
 
 if __name__ == "__main__": main()
