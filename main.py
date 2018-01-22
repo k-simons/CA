@@ -1,10 +1,11 @@
-
 import requests
 from graph import Graph
 from node import Node
 from edge import Edge
-from encodeRequest import encode
+from encodeRequest import generateApiKeyAndSignature
 from cycleChecker import CycleChecker
+import time
+import os
 
 base = "https://api.binance.com"
 info = base + "/api/v1/exchangeInfo"
@@ -14,80 +15,15 @@ ticket =    base + "/api/v1/ticker/24hr"
 tickerPrice = base + "/api/v3/ticker/price"
 makeFakeOrder = base + "/api/v3/order/test"
 
-def printKeys(mydic):
-    for key in mydic:
-        print(key)
 
-def getApiData():
-
-    print(info)
-    response = requests.get(info)
-    infoResponse = response.json()
-    symbols = infoResponse["symbols"]
-    print(len(symbols))
-    ## use symbols to get to and from
-
-    print("")
-    print("")
-
-    print(tickerPrice)
-    response = requests.get(tickerPrice)
-    print(len(response.json()))
-    ## array of
-    #{
-    #    "symbol": "ETHBTC",
-    #    "price": "0.08966300"
-    #},
-    ## use ticker price to get edge weight
-
-def testGraph():
-    ## have a node
-    ## pick and edge, follow to n2
-    ## pick and edge to n3
-    ## pick an edge to n
-    ## given a unit -> what it unit in the end
-    ## nodeID -> Edges to nodes
-    node1 = Node("1")
-    node2 = Node("2")
-    node3 = Node("3")
-    node4 = Node("4")
-    node5 = Node("5")
-    # To base
-    edge12 = Edge("1", "2", .5)
-
-    # L1
-    edge23 = Edge("2", "3", 1)
-    edge31 = Edge("3", "1", 3)
-
-    # L1
-    edge25 = Edge("2", "5", 1)
-    edge51 = Edge("5", "1", 1)
-
-    # To no where
-    edge24 = Edge("2", "4", 1)
-    edge45 = Edge("4", "5", 1)
-
-    graph = Graph(
-        [node1, node2, node3, node4, node5],
-        [edge12, edge23, edge31, edge25, edge51, edge24, edge45]
-    )
-    graph.checkCyclesOfDepth(3, Node("1"))
-
-def binanceToNode():
-    #- hit the api to get the name of the ticker, the to and the from coins
-    #- Enrich with current price to make 2 edges
-    return 1
-
-def doIt():
-    response = requests.get(tickerPrice)
-    prices = response.json()
-    # {'symbol': 'ETHBTC', 'price': '0.09017900'} we can see base is ETH and quoteAsset BTC
+def generateBinanceGraph():
+    prices = requests.get(tickerPrice).json()
+    # {'symbol': 'ETHBTC', 'price': '0.09017900'} array of current prices
     pricesDict = {}
     for price in prices:
         pricesDict[price["symbol"]] = price["price"]
-    ## great have a dict, now lets creates 2 nodes per symbo
-    response = requests.get(info)
-    infoResponse = response.json()
+    ## great have a dict, now lets creates 2 edges per ticker
+    infoResponse = requests.get(info).json()
     edges = []
     nodeDict = {}
     for symbol in infoResponse["symbols"]:
@@ -100,54 +36,69 @@ def doIt():
         edgeInverse = Edge(goingAsset, startAsset, 1 / float(pricesDict[ticker]))
         edges.append(edge)
         edges.append(edgeInverse)
-
     nodes = []
-
     for key in nodeDict:
         nodes.append(Node(key))
+    return Graph(nodes, edges)
 
-    graph = Graph(nodes, edges)
+def getCurrentBestPath(cycleChecker):
     mList = []
-    tradeSet = set()
-    tradeSet.add("BTC")
-    tradeSet.add("ETH")
+    nodes = [Node("BTC"), Node("ETH")]
     for node in nodes:
-        if node.nodeId in tradeSet:
-            cycleChecker = CycleChecker(3, node, graph)
-            test = cycleChecker.checkCycles()
-            mList.extend(test)
+        test = cycleChecker.checkCycles(3, node)
+        mList.extend(test)
     maxResult = mList[0]
     for m in mList:
         if m.units > maxResult.units:
             maxResult = m
+    return maxResult
+
+def doIt():
+    graph = generateBinanceGraph()
+    cycleChecker = CycleChecker(graph)
+    maxResult = getCurrentBestPath(cycleChecker)
     print(maxResult.units)
     for node in maxResult.nodePath:
         print(node)
+    print("check price")
+
+    timesToCheck = 10
+    while timesToCheck > 0:
+        time.sleep(2)
+        graph = generateBinanceGraph()
+        cycleChecker = CycleChecker(graph)
+        cycleChecker.checkNodePath(maxResult.nodePath)
+        timesToCheck = timesToCheck - 1
 
 
-    #print("OLD")
-    #mList = []
-    #for node in nodes:
-    #    mList.append(graph.checkCyclesOfDepth(3, node))
-    #print(max(mList))
+def sketch():
+    timestamp = int(round(time.time() * 1000))
+    data = {
+        "symbol": "LTCBTC",
+        "side": "BUY",
+        "type": "MARKET",
+        "quantity": 1,
+        "timestamp": timestamp,
+    }
+    body = ""
+    for key, value in data.items():
+        body = body + key + "=" + str(value) + "&"
+    body = body[:-1]
+    tup = generateApiKeyAndSignature(body, "../keys.json")
+    headers = {"X-MBX-APIKEY": tup[0]}
+    makeFakeOrderFinal = makeFakeOrder + "?" + body + "&signature=" + tup[1]
 
-def main():
-    print("fake")
-    headers = {"X-MBX-APIKEY: key"}
-    data = {'key':'value'}
-    r = requests.post(makeFakeOrder, data=data, headers=headers)
-
+    r = requests.post(makeFakeOrderFinal, headers=headers)
+    print(" REQUEST JSON: ")
     print(r)
+    print(r.json())
+    exit(1)
+    #r.raise_for_status()
+
+def create_test_order(**params):
+    print(params)
 
 def main():
-    print("sketch")
-    encode(
-        "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559",
-        "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"
-    )
-
-# for making a request
-# [linux]$ curl -H "X-MBX-APIKEY: vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" -X POST 'https://api.binance.com/api/v3/order' -d 'symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=6000000&timestamp=1499827319559&signature=c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71'
-
+    doIt()
 
 if __name__ == "__main__": main()
