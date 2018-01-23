@@ -91,6 +91,5 @@ class CycleResult:
                 numberOfSteps = math.floor(nextUnit / stepSize)
                 startUnit = numberOfSteps * stepSize
                 dust[symbol] = nextUnit - startUnit
-            print(startUnit)
         result["endUnits"] = startUnit
         return result

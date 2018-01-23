@@ -1,46 +1,13 @@
-import requests
-from graph import Graph
+from binanceClient import BinanceClient
 from node import Node
-from edge import Edge, TickerInfo
-from encodeRequest import createFullUrlAndHeaders
+from binanceGraphCreator import generateBinanceGraph
 from cycleChecker import CycleChecker
-import time
-import os
 
-base = "https://api.binance.com"
-info = base + "/api/v1/exchangeInfo"
-depth = base + "/api/v1/depth"
-extraDepthExample = depth + "?symbol=BNBBTC"
-ticket =    base + "/api/v1/ticker/24hr"
-tickerPrice = base + "/api/v3/ticker/price"
-getTrades = base + "/api/v3/myTrades"
-getOrder = base + "/api/v3/order"
-getAccountInfo = base + "/api/v3/account"
-getOpenOrders = base + "/api/v3/openOrders"
-makeOrder = base + "/api/v3/order"
-makeFakeOrder = base + "/api/v3/order/test"
 
-# Get account info
-def getAccountBalanace():
-    data = {}
-    (fullString, headers) = createFullUrlAndHeaders(getAccountInfo, data)
-    accountInfo = requests.get(fullString, headers=headers).json()
-    balances = accountInfo["balances"]
-    balancesWithMoney = [balance for balance in balances if float(balance["free"]) > 0 or float(balance["locked"]) > 0]
-    print(balancesWithMoney)
-
-# Get trades
-def getPastTrades(symbol):
-    data = {
-        "symbol": symbol,
-        "limit": 5
-    }
-    (fullString, headers) = createFullUrlAndHeaders(getTrades, data)
-    return requests.get(fullString, headers=headers).json()
+binanceClient = BinanceClient()
 
 def calculateNewBalanceToSee(symbol, orderId):
-    resultArray = getPastTrades(symbol)
-    order = next(result for result in resultArray if result["orderId"] == orderId)
+    order = binanceClient.getLastTradeWithOrderId(symbol, orderId)
     ## Now that we have the order, we take the qty and multiple by price
     newQuantity = float(order["qty"]) * float(order["price"])
     ## Then subtract commision
@@ -49,65 +16,6 @@ def calculateNewBalanceToSee(symbol, orderId):
     amountToTrade = amountToTradeLarge
     return amountToTrade
 
-# Get open orders
-def getOpenOrder(symbol):
-    data = {
-        "symbol": symbol,
-    }
-    (fullString, headers) = createFullUrlAndHeaders(getOpenOrders, data)
-    print(requests.get(fullString, headers=headers).json())
-
-# Bleh same response after making purchase
-def getUserOrder(symbol, orderId):
-    data = {
-        "symbol": symbol,
-        "orderId": orderId,
-    }
-    (fullString, headers) = createFullUrlAndHeaders(getOrder, data)
-    print(requests.get(fullString, headers=headers).json())
-
-def generateBinanceGraph():
-    ## Do this first so the market is most up to date
-    infoResponse = requests.get(info).json()
-    # Then get market data
-    prices = requests.get(tickerPrice).json()
-    # {'symbol': 'ETHBTC', 'price': '0.09017900'} array of current prices
-    pricesDict = {}
-    for price in prices:
-        pricesDict[price["symbol"]] = price["price"]
-    ## great have a dict, now lets creates 2 edges per ticker
-    edges = []
-    nodeDict = {}
-    stepSizeLookUp = {}
-    for symbol in infoResponse["symbols"]:
-        ticker = symbol["symbol"]
-        startAsset = symbol["baseAsset"]
-        goingAsset = symbol["quoteAsset"]
-        nodeDict[startAsset] = True
-        nodeDict[goingAsset] = True
-        edge = Edge(
-            TickerInfo(ticker, False),
-            startAsset,
-            goingAsset,
-            float(pricesDict[ticker])
-        )
-        edgeInverse = Edge(
-            TickerInfo(ticker, True),
-            goingAsset,
-            startAsset,
-            1 / float(pricesDict[ticker]),
-        )
-        edges.append(edge)
-        edges.append(edgeInverse)
-
-        for filterSet in symbol["filters"]:
-            if "minQty" in filterSet:
-                stepSizeLookUp[ticker] = float(filterSet["minQty"])
-
-    nodes = []
-    for key in nodeDict:
-        nodes.append(Node(key))
-    return (Graph(nodes, edges), stepSizeLookUp)
 
 def getCurrentBestPath(cycleChecker):
     cycleResults = []
@@ -115,7 +23,7 @@ def getCurrentBestPath(cycleChecker):
     for node in nodes:
         test = cycleChecker.checkCycles(3, node)
         cycleResults.extend(cycleChecker.checkCycles(3, node))
-    units = .109
+    units = .05
     hmm = -1
     bestCycleResult = None
     for cycleResult in cycleResults:
@@ -132,7 +40,7 @@ def getCurrentBestPath(cycleChecker):
     print(lol)
 
 def doIt():
-    (graph, stepSizeLookUp) = generateBinanceGraph()
+    (graph, stepSizeLookUp) = generateBinanceGraph(binanceClient)
     cycleChecker = CycleChecker(graph, stepSizeLookUp)
     getCurrentBestPath(cycleChecker)
     #exit(1)
@@ -149,6 +57,7 @@ def doIt():
 
 def doAllTrades(edges):
     startQuantity = .05
+    exit(1)
     for edge in edges:
         requestJson = makeTradeFromEdge(edge, startQuantity).json()
         print(requestJson)
@@ -156,22 +65,6 @@ def doAllTrades(edges):
         orderId = requestJson["orderId"]
         startQuantity = calculateNewBalanceToSee(symbol, orderId)
         print(startQuantity)
-
-def makeTradeFromEdge(edge, quantity):
-    print(edge.tickerInfo)
-    data = {
-        "symbol": edge.tickerInfo.symbol,
-        "side": "BUY" if edge.tickerInfo.buy else "SELL",
-        "type": "MARKET",
-        "quantity": quantity,
-    }
-    return makeRequestFromDataBlob(data)
-
-def makeRequestFromDataBlob(data):
-    (fullString, headers) = createFullUrlAndHeaders(makeOrder, data)
-    print("FINAL STRING")
-    print(fullString)
-    return requests.post(fullString, headers=headers)
 
 
 def main():
