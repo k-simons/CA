@@ -1,7 +1,21 @@
+import copy
 import subprocess
+import time
 import sys
 import json
 import os
+
+def createFullUrlAndHeaders(prefix, dataWithoutTime):
+    data = copy.deepcopy(dataWithoutTime)
+    data["timestamp"] = int(round(time.time() * 1000))
+    body = ""
+    for key, value in data.items():
+        body = body + key + "=" + str(value) + "&"
+    body = body[:-1]
+    tup = generateApiKeyAndSignature(body, "../keys.json")
+    headers = {"X-MBX-APIKEY": tup[0]}
+    fullString = prefix + "?" + body + "&signature=" + tup[1]
+    return (fullString, headers)
 
 # returns (apiKey, signature)
 # requestBody should look like "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559"

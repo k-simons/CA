@@ -2,7 +2,7 @@ import requests
 from graph import Graph
 from node import Node
 from edge import Edge, TickerInfo
-from encodeRequest import generateApiKeyAndSignature
+from encodeRequest import createFullUrlAndHeaders
 from cycleChecker import CycleChecker
 import time
 import os
@@ -13,9 +13,27 @@ depth = base + "/api/v1/depth"
 extraDepthExample = depth + "?symbol=BNBBTC"
 ticket =    base + "/api/v1/ticker/24hr"
 tickerPrice = base + "/api/v3/ticker/price"
+getOrder = base + "/api/v3/order"
+getOpenOrders = base + "/api/v3/openOrders"
 makeOrder = base + "/api/v3/order"
 makeFakeOrder = base + "/api/v3/order/test"
 
+# Get open orders
+def getOpenOrder(symbol):
+    data = {
+        "symbol": symbol,
+    }
+    (fullString, headers) = createFullUrlAndHeaders(getOpenOrders, data)
+    print(requests.get(fullString, headers=headers).json())
+
+# Bleh same response after making purchase
+def getUserOrder(symbol, orderId):
+    data = {
+        "symbol": symbol,
+        "orderId": orderId,
+    }
+    (fullString, headers) = createFullUrlAndHeaders(getOrder, data)
+    print(requests.get(fullString, headers=headers).json())
 
 def generateBinanceGraph():
     ## Do this first so the market is most up to date
@@ -91,30 +109,23 @@ def ohShit(edge):
 def makeTradeFromEdge(edge, quantity):
     print(edge.tickerInfo)
     exit(1)
-    timestamp = int(round(time.time() * 1000))
-    side = "BUY" if edge.tickerInfo.buy else "SELL"
     data = {
         "symbol": edge.tickerInfo.symbol,
-        "side": side,
+        "side": "BUY" if edge.tickerInfo.buy else "SELL",
         "type": "MARKET",
         "quantity": quantity,
-        "timestamp": timestamp,
     }
     return makeRequestFromDataBlob(data)
 
 def makeRequestFromDataBlob(data):
-    body = ""
-    for key, value in data.items():
-        body = body + key + "=" + str(value) + "&"
-    body = body[:-1]
-    tup = generateApiKeyAndSignature(body, "../keys.json")
-    headers = {"X-MBX-APIKEY": tup[0]}
-    makeOrderFinal = makeOrder + "?" + body + "&signature=" + tup[1]
-    print("FINAL ORDER STRING")
-    print(makeOrderFinal)
-    return requests.post(makeOrderFinal, headers=headers)
+    (fullString, headers) = createFullUrlAndHeaders(makeOrder, data)
+    print("FINAL STRING")
+    print(fullString)
+    exit(1)
+    return requests.post(fullString, headers=headers)
+
 
 def main():
-    doIt()
+    getOpenOrder("ETHBTC")
 
 if __name__ == "__main__": main()
