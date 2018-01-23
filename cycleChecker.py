@@ -80,16 +80,25 @@ class CycleResult:
             "endUnits": startUnit
         }
         for edge in self.edgePath:
-            symbol = edge.tickerInfo.symbol
-            nextUnit = edge.makeTrade(startUnit)
+            # Look at starting units, see how much can go into new exchange
             stepSize = self.stepSizeLookUp[edge.tickerInfo.symbol]
-            if nextUnit < stepSize:
-                ## Oh no fail
+            if startUnit < stepSize:
+                ## Oh no fail, not enough money to make transaction, mark valid as false and return
                 result["valid"] = False
                 return result
             else:
-                numberOfSteps = math.floor(nextUnit / stepSize)
-                startUnit = numberOfSteps * stepSize
-                dust[symbol] = nextUnit - startUnit
+                ## Ok we have enough, lets see how much we are going to transfer now
+                # Take the start and divide by step size
+                numberOfSteps = math.floor(startUnit / stepSize)
+                # Then take the number of steps and multiple it by step size to get amount to trade
+                tradeUnit = numberOfSteps * stepSize
+                ## Then make that trade and have a new startUnit
+                newStartUnit = edge.makeTrade(tradeUnit)
+                ## Before we start over, look at the dust between the 2 values
+                dustFromTrade =  startUnit - tradeUnit
+                if dustFromTrade > 0:
+                    ## Will happen on non-even trades
+                    dust[edge.fromNodeId] = dustFromTrade
+                startUnit = newStartUnit
         result["endUnits"] = startUnit
         return result
