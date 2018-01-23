@@ -36,8 +36,19 @@ def getPastTrades(symbol):
         "limit": 5
     }
     (fullString, headers) = createFullUrlAndHeaders(getTrades, data)
-    print(fullString)
-    print(requests.get(fullString, headers=headers).json())
+    return requests.get(fullString, headers=headers).json()
+
+def calculateNewBalanceToSee(symbol, orderId):
+    resultArray = getPastTrades(symbol)
+    order = next(result for result in resultArray if result["orderId"] == orderId)
+    ## Now that we have the order, we take the qty and multiple by price
+    newQuantity = float(order["qty"]) * float(order["price"])
+    ## Then subtract commision
+    amountToTradeLarge = newQuantity - float(order["commission"])
+    ## Round to useful value
+    amountToTrade = round(amountToTradeLarge, 10)
+    print(amountToTrade)
+    return amountToTrade
 
 # Get open orders
 def getOpenOrder(symbol):
@@ -116,25 +127,22 @@ def doIt():
     if maxResult.units > 1.01  :
         # will not do unless .1% gain
         print("ENGAGED")
-        ohShit(edges[0])
+        doAllTrades(edges)
     else:
         print("TOO LOW")
 
 def doAllTrades(edges):
-    startQuantity = .01
+    startQuantity = .05
     for edge in edges:
-        print(edge)
-
-def ohShit(edge):
-    startQuantity = .01
-    r = makeTradeFromEdge(edge, startQuantity)
-    print(" REQUEST JSON: ")
-    print(r)
-    print(r.json())
+        requestJson = makeTradeFromEdge(edge, startQuantity).json()
+        print(requestJson)
+        symbol = requestJson["symbol"]
+        orderId = requestJson["orderId"]
+        startQuantity = calculateNewBalanceToSee(symbol, orderId)
+        print(startQuantity)
 
 def makeTradeFromEdge(edge, quantity):
     print(edge.tickerInfo)
-    exit(1)
     data = {
         "symbol": edge.tickerInfo.symbol,
         "side": "BUY" if edge.tickerInfo.buy else "SELL",
@@ -152,6 +160,6 @@ def makeRequestFromDataBlob(data):
 
 
 def main():
-    getAccountBalanace()
+    doIt()
 
 if __name__ == "__main__": main()
