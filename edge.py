@@ -1,6 +1,7 @@
 class Edge:
 
-    def __init__(self, fromNodeId, toNodeId, rate):
+    def __init__(self, tickerInfo, fromNodeId, toNodeId, rate):
+        self.tickerInfo = tickerInfo
         self.fromNodeId = fromNodeId
         self.toNodeId = toNodeId
         self.id = fromNodeId + toNodeId
@@ -14,3 +15,13 @@ class Edge:
         feeAmount = units * self.fee
         unitsAfterFee = units - feeAmount
         return unitsAfterFee * self.rate
+
+
+class TickerInfo:
+
+    def __init__(self, symbol, buy):
+        self.symbol = symbol
+        self.buy = buy
+
+    def __str__(self):
+        return "Ticker " + self.symbol + " where buy is " + str(self.buy)

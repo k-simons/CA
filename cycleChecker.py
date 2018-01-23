@@ -11,11 +11,9 @@ class CycleChecker:
         self.checkCyclesOfDepthInternal(NodeProgress(startNode, depth, 1, []), singleCycleMetaData, cyclesFound)
         return cyclesFound
 
-    def checkNodePath(self, nodePath):
+    def checkEdgePath(self, edges):
         startUnit = 1
-        for i in range(len(nodePath) - 1):
-            node = nodePath[i]
-            edge = self.graph.getEdgeFromNodeToNode(node, nodePath[i + 1])
+        for edge in edges:
             startUnit = edge.makeTrade(startUnit)
         print(startUnit)
 
@@ -28,10 +26,7 @@ class CycleChecker:
                 if (edge.toNodeId == singleCycleMetaData.startNode.nodeId):
                     ## Go home
                     nodeProgress = self.createNextNodeProgress(nodeProgress, edge, singleCycleMetaData)
-                    fullPath = []
-                    fullPath.extend(nodeProgress.pastNodes)
-                    fullPath.append(singleCycleMetaData.startNode)
-                    cyclesFound.append(CycleResult(fullPath, nodeProgress.units))
+                    cyclesFound.append(CycleResult(nodeProgress.pastEdges, nodeProgress.units))
         else:
             edges = [e for e in allEdges if e.toNodeId not in singleCycleMetaData.setOfNodesAlreadyInPath]
             for edge in edges:
@@ -42,10 +37,14 @@ class CycleChecker:
         toNode = Node(edge.toNodeId)
         newUnits = edge.makeTrade(nodeProgress.units)
         singleCycleMetaData.setOfNodesAlreadyInPath.add(edge.toNodeId)
-        currentPath = []
-        currentPath.extend(nodeProgress.pastNodes)
-        currentPath.append(nodeProgress.nodeToEval)
+        currentPath = self.extendEdges(edge, nodeProgress)
         return NodeProgress(toNode, nodeProgress.depthRemaining - 1, newUnits, currentPath)
+
+    def extendEdges(self, edge, nodeProgress):
+        currentPath = []
+        currentPath.extend(nodeProgress.pastEdges)
+        currentPath.append(edge)
+        return currentPath
 
 class SingleCycleMetaData:
 
@@ -57,14 +56,14 @@ class SingleCycleMetaData:
 
 class NodeProgress:
 
-    def __init__(self, nodeToEval, depthRemaining, units, pastNodes):
+    def __init__(self, nodeToEval, depthRemaining, units, pastEdges):
         self.nodeToEval = nodeToEval
         self.depthRemaining = depthRemaining
         self.units = units
-        self.pastNodes = pastNodes
+        self.pastEdges = pastEdges
 
 class CycleResult:
 
-    def __init__(self, nodePath, units):
-        self.nodePath = nodePath
+    def __init__(self, edgePath, units):
+        self.edgePath = edgePath
         self.units = units

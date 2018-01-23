@@ -1,0 +1,13 @@
+{
+	"symbol": "ETHBTC",
+	"orderId": 60945946,
+	"clientOrderId": "WShm7f9MhoNMfUixAGwiRs",
+	"transactTime": 1516681362439,
+	"price": "0.00000000",
+	"origQty": "0.01000000",
+	"executedQty": "0.01000000",
+	"status": "FILLED",
+	"timeInForce": "GTC",
+	"type": "MARKET",
+	"side": "SELL"
+}
