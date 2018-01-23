@@ -13,10 +13,31 @@ depth = base + "/api/v1/depth"
 extraDepthExample = depth + "?symbol=BNBBTC"
 ticket =    base + "/api/v1/ticker/24hr"
 tickerPrice = base + "/api/v3/ticker/price"
+getTrades = base + "/api/v3/myTrades"
 getOrder = base + "/api/v3/order"
+getAccountInfo = base + "/api/v3/account"
 getOpenOrders = base + "/api/v3/openOrders"
 makeOrder = base + "/api/v3/order"
 makeFakeOrder = base + "/api/v3/order/test"
+
+# Get account info
+def getAccountBalanace():
+    data = {}
+    (fullString, headers) = createFullUrlAndHeaders(getAccountInfo, data)
+    accountInfo = requests.get(fullString, headers=headers).json()
+    balances = accountInfo["balances"]
+    balancesWithMoney = [balance for balance in balances if float(balance["free"]) > 0 or float(balance["locked"]) > 0]
+    print(balancesWithMoney)
+
+# Get trades
+def getPastTrades(symbol):
+    data = {
+        "symbol": symbol,
+        "limit": 5
+    }
+    (fullString, headers) = createFullUrlAndHeaders(getTrades, data)
+    print(fullString)
+    print(requests.get(fullString, headers=headers).json())
 
 # Get open orders
 def getOpenOrder(symbol):
@@ -99,6 +120,11 @@ def doIt():
     else:
         print("TOO LOW")
 
+def doAllTrades(edges):
+    startQuantity = .01
+    for edge in edges:
+        print(edge)
+
 def ohShit(edge):
     startQuantity = .01
     r = makeTradeFromEdge(edge, startQuantity)
@@ -126,6 +152,6 @@ def makeRequestFromDataBlob(data):
 
 
 def main():
-    getOpenOrder("ETHBTC")
+    getAccountBalanace()
 
 if __name__ == "__main__": main()

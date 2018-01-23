@@ -1,0 +1,12 @@
+[{
+	"id": 25101471,
+	"orderId": 60945946,
+	"price": "0.09159100",
+	"qty": "0.01000000",
+	"commission": "0.00000092",
+	"commissionAsset": "BTC",
+	"time": 1516681362439,
+	"isBuyer": false,
+	"isMaker": false,
+	"isBestMatch": true
+}]
