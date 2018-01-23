@@ -22,7 +22,7 @@ class Graph:
         for edge in self.edgeMapping[nodeFrom.nodeId]:
             if edge.toNodeId == nodeTo.nodeId:
                 return edge
-        raise Exception('I know Python!')
+        raise Exception('Could not find edges')
 
 def createTestGraph():
     node1 = Node("1")

@@ -21,9 +21,16 @@ def getCurrentBestPath(cycleChecker):
     cycleResults = []
     nodes = [Node("ETH")]
     for node in nodes:
-        test = cycleChecker.checkCycles(3, node)
         cycleResults.extend(cycleChecker.checkCycles(3, node))
-    units = .05
+
+    units = .1
+    # What would the best result be without dust?
+    bestResult = cycleResults[0]
+    for cycleResult in cycleResults:
+        value = cycleResult.emitExpectedTradeValueWithoutDust(units)
+        if value > bestResult.emitExpectedTradeValueWithoutDust(units):
+            bestResult = cycleResult
+
     hmm = -1
     bestCycleResult = None
     for cycleResult in cycleResults:
@@ -31,17 +38,20 @@ def getCurrentBestPath(cycleChecker):
         if resultOfTrading["valid"] == True and resultOfTrading["endUnits"] > hmm:
             bestCycleResult = cycleResult
             hmm = resultOfTrading["endUnits"]
-    print("      ")
+    print(bestResult.emitExpectedTradeValueWithoutDust(units))
+    for edge in bestResult.edgePath:
+        print(edge)
     print("      ")
     print("      ")
     lol = bestCycleResult.getTradesAndEmitAndDust(units)
     for edge in bestCycleResult.edgePath:
         print(edge)
     print(lol)
+    exit(1)
 
 def doIt():
-    (graph, stepSizeLookUp) = generateBinanceGraph(binanceClient)
-    cycleChecker = CycleChecker(graph, stepSizeLookUp)
+    graph = generateBinanceGraph(binanceClient)
+    cycleChecker = CycleChecker(graph)
     getCurrentBestPath(cycleChecker)
     #exit(1)
     #print(maxResult.units)
@@ -59,7 +69,7 @@ def doAllTrades(edges):
     startQuantity = .05
     exit(1)
     for edge in edges:
-        requestJson = makeTradeFromEdge(edge, startQuantity).json()
+        requestJson = binanceClient.makeTradeFromEdge(edge, startQuantity)
         print(requestJson)
         symbol = requestJson["symbol"]
         orderId = requestJson["orderId"]
