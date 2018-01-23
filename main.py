@@ -46,8 +46,7 @@ def calculateNewBalanceToSee(symbol, orderId):
     ## Then subtract commision
     amountToTradeLarge = newQuantity - float(order["commission"])
     ## Round to useful value
-    amountToTrade = round(amountToTradeLarge, 10)
-    print(amountToTrade)
+    amountToTrade = amountToTradeLarge
     return amountToTrade
 
 # Get open orders
@@ -79,6 +78,7 @@ def generateBinanceGraph():
     ## great have a dict, now lets creates 2 edges per ticker
     edges = []
     nodeDict = {}
+    stepSizeLookUp = {}
     for symbol in infoResponse["symbols"]:
         ticker = symbol["symbol"]
         startAsset = symbol["baseAsset"]
@@ -99,37 +99,53 @@ def generateBinanceGraph():
         )
         edges.append(edge)
         edges.append(edgeInverse)
+
+        for filterSet in symbol["filters"]:
+            if "minQty" in filterSet:
+                stepSizeLookUp[ticker] = float(filterSet["minQty"])
+
     nodes = []
     for key in nodeDict:
         nodes.append(Node(key))
-    return Graph(nodes, edges)
+    return (Graph(nodes, edges), stepSizeLookUp)
 
 def getCurrentBestPath(cycleChecker):
-    mList = []
+    cycleResults = []
     nodes = [Node("ETH")]
     for node in nodes:
         test = cycleChecker.checkCycles(3, node)
-        mList.extend(test)
-    maxResult = mList[0]
-    for m in mList:
-        if m.units > maxResult.units:
-            maxResult = m
-    return maxResult
+        cycleResults.extend(cycleChecker.checkCycles(3, node))
+    units = .109
+    hmm = -1
+    bestCycleResult = None
+    for cycleResult in cycleResults:
+        resultOfTrading = cycleResult.getTradesAndEmitAndDust(units)
+        if resultOfTrading["valid"] == True and resultOfTrading["endUnits"] > hmm:
+            bestCycleResult = cycleResult
+            hmm = resultOfTrading["endUnits"]
+    print("      ")
+    print("      ")
+    print("      ")
+    lol = bestCycleResult.getTradesAndEmitAndDust(units)
+    for edge in bestCycleResult.edgePath:
+        print(edge)
+    print(lol)
 
 def doIt():
-    graph = generateBinanceGraph()
-    cycleChecker = CycleChecker(graph)
-    maxResult = getCurrentBestPath(cycleChecker)
-    print(maxResult.units)
-    edges = maxResult.edgePath
-    for edge in edges:
-        print(edge)
-    if maxResult.units > 1.01  :
-        # will not do unless .1% gain
-        print("ENGAGED")
-        doAllTrades(edges)
-    else:
-        print("TOO LOW")
+    (graph, stepSizeLookUp) = generateBinanceGraph()
+    cycleChecker = CycleChecker(graph, stepSizeLookUp)
+    getCurrentBestPath(cycleChecker)
+    #exit(1)
+    #print(maxResult.units)
+    #edges = maxResult.edgePath
+    #for edge in edges:
+    #    print(edge)
+    #if maxResult.units > 1.01  :
+    #    # will not do unless .1% gain
+    #    print("ENGAGED")
+    #    doAllTrades(edges)
+    #else:
+    #    print("TOO LOW")
 
 def doAllTrades(edges):
     startQuantity = .05
@@ -155,11 +171,12 @@ def makeRequestFromDataBlob(data):
     (fullString, headers) = createFullUrlAndHeaders(makeOrder, data)
     print("FINAL STRING")
     print(fullString)
-    exit(1)
     return requests.post(fullString, headers=headers)
 
 
 def main():
     doIt()
+
+
 
 if __name__ == "__main__": main()

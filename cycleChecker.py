@@ -1,9 +1,11 @@
 from node import Node
+import math
 
 class CycleChecker:
 
-    def __init__(self, graph):
+    def __init__(self, graph, stepSizeLookUp):
         self.graph = graph
+        self.stepSizeLookUp = stepSizeLookUp
 
     def checkCycles(self, depth, startNode):
         singleCycleMetaData = SingleCycleMetaData(depth, startNode)
@@ -26,7 +28,7 @@ class CycleChecker:
                 if (edge.toNodeId == singleCycleMetaData.startNode.nodeId):
                     ## Go home
                     nodeProgress = self.createNextNodeProgress(nodeProgress, edge, singleCycleMetaData)
-                    cyclesFound.append(CycleResult(nodeProgress.pastEdges, nodeProgress.units))
+                    cyclesFound.append(CycleResult(nodeProgress.pastEdges, nodeProgress.units, self.stepSizeLookUp))
         else:
             edges = [e for e in allEdges if e.toNodeId not in singleCycleMetaData.setOfNodesAlreadyInPath]
             for edge in edges:
@@ -64,6 +66,31 @@ class NodeProgress:
 
 class CycleResult:
 
-    def __init__(self, edgePath, units):
+    def __init__(self, edgePath, units, stepSizeLookUp):
         self.edgePath = edgePath
         self.units = units
+        self.stepSizeLookUp = stepSizeLookUp
+
+    def getTradesAndEmitAndDust(self, unit):
+        dust = {}
+        startUnit = unit
+        result = {
+            "dust": dust,
+            "valid": True,
+            "endUnits": startUnit
+        }
+        for edge in self.edgePath:
+            symbol = edge.tickerInfo.symbol
+            nextUnit = edge.makeTrade(startUnit)
+            stepSize = self.stepSizeLookUp[edge.tickerInfo.symbol]
+            if nextUnit < stepSize:
+                ## Oh no fail
+                result["valid"] = False
+                return result
+            else:
+                numberOfSteps = math.floor(nextUnit / stepSize)
+                startUnit = numberOfSteps * stepSize
+                dust[symbol] = nextUnit - startUnit
+            print(startUnit)
+        result["endUnits"] = startUnit
+        return result
